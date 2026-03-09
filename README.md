@@ -147,7 +147,6 @@ config/packages/mcp.yaml          # Config MCP Server
 
 - **WebMCP Bundle** : [`yoanbernabeu/webmcp-bundle`](https://packagist.org/packages/yoanbernabeu/webmcp-bundle) — déclare les tools WebMCP avec des attributs PHP `#[AsWebMcpTool]`
 - **Article complet** : [L'interface utilisateur à l'heure des LLM](https://clementbouly.com/blog/mcp-ui-paradigms)
-- **Présentation interactive** : [Slides](https://clementbouly.com/labs/mcp-demo)
 
 ## Licence
 
