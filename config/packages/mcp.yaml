@@ -1,0 +1,11 @@
+mcp:
+    app: 'grocery-list'
+    version: '1.0.0'
+    description: 'MCP Server pour gérer des listes de courses — Démo AFUP Montpellier'
+
+    client_transports:
+        stdio: true
+        http: true
+
+    http:
+        path: /_mcp

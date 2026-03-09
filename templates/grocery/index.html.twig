@@ -1,0 +1,311 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}🛒 Liste de courses — Démo MCP Symfony{% endblock %}
+
+{% block stylesheets %}
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f4;
+        color: #1c1917;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+    .header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .header h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+    .header p { color: #78716c; font-size: 0.9rem; }
+    .board {
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    .list-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        width: 280px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e7e5e4;
+    }
+    .list-header h2 { font-size: 1.1rem; font-weight: 600; }
+    .btn-delete-list {
+        background: none;
+        border: none;
+        color: #a8a29e;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    .btn-delete-list:hover { background: #fef2f2; color: #ef4444; }
+    .items { list-style: none; }
+    .item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0;
+    }
+    .item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #16a34a;
+    }
+    .item-name { flex: 1; font-size: 0.95rem; }
+    .item-name.checked {
+        text-decoration: line-through;
+        color: #a8a29e;
+    }
+    .btn-delete-item {
+        background: none;
+        border: none;
+        color: #d6d3d1;
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        visibility: hidden;
+    }
+    .item:hover .btn-delete-item { visibility: visible; }
+    .btn-delete-item:hover { color: #ef4444; background: #fef2f2; }
+    .add-item-form {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #e7e5e4;
+    }
+    .add-item-form input {
+        flex: 1;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+        outline: none;
+    }
+    .add-item-form input:focus { border-color: #16a34a; }
+    .add-item-form button {
+        background: #16a34a;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.4rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .add-item-form button:hover { background: #15803d; }
+    .new-list-form {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+    .new-list-form input {
+        border: 1px solid #d6d3d1;
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        outline: none;
+    }
+    .new-list-form input:focus { border-color: #16a34a; }
+    .new-list-form button {
+        background: #292524;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+    .new-list-form button:hover { background: #1c1917; }
+    .tech-badge {
+        display: inline-block;
+        background: #e7e5e4;
+        color: #57534e;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="header">
+    <h1>🛒 Liste de courses</h1>
+    <p>Démo MCP — Symfony PHP</p>
+    <span class="tech-badge">P1 — Interface classique (Twig + JS)</span>
+</div>
+
+<div class="board" id="board">
+    {% for list in lists %}
+    <div class="list-card" data-list-id="{{ list.id }}">
+        <div class="list-header">
+            <h2>{{ list.name }}</h2>
+            <button class="btn-delete-list" onclick="deleteList({{ list.id }})" title="Supprimer la liste">✕</button>
+        </div>
+        <ul class="items">
+            {% for item in list.items %}
+            <li class="item" data-item-id="{{ item.id }}">
+                <input type="checkbox" {{ item.checked ? 'checked' : '' }}
+                       onchange="toggleItem({{ item.id }})">
+                <span class="item-name {{ item.checked ? 'checked' : '' }}">{{ item.name }}</span>
+                <button class="btn-delete-item" onclick="removeItem({{ item.id }})" title="Supprimer">✕</button>
+            </li>
+            {% endfor %}
+        </ul>
+        <form class="add-item-form" onsubmit="addItem(event, {{ list.id }})">
+            <input type="text" placeholder="Ajouter un article..." maxlength="50" required>
+            <button type="submit">+</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+
+<form class="new-list-form" onsubmit="createList(event)">
+    <input type="text" placeholder="Nouvelle liste..." maxlength="25" required>
+    <button type="submit">Créer une liste</button>
+</form>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    async function api(url, method = 'GET', body = null) {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(url, opts);
+        return res.json();
+    }
+
+    function reload() { location.reload(); }
+
+    async function toggleItem(id) {
+        await api(`/api/items/${id}/toggle`, 'PATCH');
+        reload();
+    }
+
+    async function removeItem(id) {
+        await api(`/api/items/${id}`, 'DELETE');
+        reload();
+    }
+
+    async function addItem(e, listId) {
+        e.preventDefault();
+        const input = e.target.querySelector('input');
+        const name = input.value.trim();
+        if (!name) return;
+        await api(`/api/lists/${listId}/items`, 'POST', { name });
+        reload();
+    }
+
+    async function deleteList(id) {
+        if (!confirm('Supprimer cette liste ?')) return;
+        await api(`/api/lists/${id}`, 'DELETE');
+        reload();
+    }
+
+    async function createList(e) {
+        e.preventDefault();
+        const input = e.target.querySelector('input');
+        const name = input.value.trim();
+        if (!name) return;
+        await api('/api/lists', 'POST', { name });
+        reload();
+    }
+</script>
+
+{# ── P4: WebMCP — déclaration des tools via navigator.modelContext ── #}
+<script>
+    if ('modelContext' in navigator) {
+        const tools = [
+            {
+                name: 'get-lists',
+                description: 'Get all grocery lists with their items',
+                inputSchema: { type: 'object', properties: {} },
+                handler: () => api('/api/lists'),
+            },
+            {
+                name: 'create-list',
+                description: 'Create a new grocery list',
+                inputSchema: {
+                    type: 'object',
+                    properties: { name: { type: 'string', description: 'List name' } },
+                    required: ['name'],
+                },
+                handler: ({ name }) => api('/api/lists', 'POST', { name }),
+            },
+            {
+                name: 'delete-list',
+                description: 'Delete a grocery list',
+                inputSchema: {
+                    type: 'object',
+                    properties: { listId: { type: 'string', description: 'List ID' } },
+                    required: ['listId'],
+                },
+                handler: ({ listId }) => api(`/api/lists/${listId}`, 'DELETE'),
+            },
+            {
+                name: 'add-item',
+                description: 'Add an item to a grocery list',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        listId: { type: 'string', description: 'List ID' },
+                        name: { type: 'string', description: 'Item name' },
+                    },
+                    required: ['listId', 'name'],
+                },
+                handler: ({ listId, name }) => api(`/api/lists/${listId}/items`, 'POST', { name }),
+            },
+            {
+                name: 'remove-item',
+                description: 'Remove an item from a grocery list',
+                inputSchema: {
+                    type: 'object',
+                    properties: { itemId: { type: 'string', description: 'Item ID' } },
+                    required: ['itemId'],
+                },
+                handler: ({ itemId }) => api(`/api/items/${itemId}`, 'DELETE'),
+            },
+            {
+                name: 'toggle-item',
+                description: 'Check or uncheck a grocery item',
+                inputSchema: {
+                    type: 'object',
+                    properties: { itemId: { type: 'string', description: 'Item ID' } },
+                    required: ['itemId'],
+                },
+                handler: ({ itemId }) => api(`/api/items/${itemId}/toggle`, 'PATCH'),
+            },
+        ];
+
+        tools.forEach(tool => {
+            navigator.modelContext.registerTool(tool.name, {
+                description: tool.description,
+                inputSchema: tool.inputSchema,
+                handler: async (params) => {
+                    const result = await tool.handler(params);
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
+            });
+        });
+
+        console.log(`🔧 WebMCP: ${tools.length} tools registered`);
+    }
+</script>
+{% endblock %}
