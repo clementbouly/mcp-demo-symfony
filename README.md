@@ -15,7 +15,7 @@ Démo minimaliste d'une liste de courses en **Symfony PHP**, illustrant 4 paradi
 
 ## Prérequis
 
-- PHP 8.2+
+- PHP 8.4+
 - Composer
 - Symfony CLI (optionnel mais recommandé)
 
@@ -84,7 +84,7 @@ Pour **Claude Code**, créer un fichier `.mcp.json` :
 Relancer Claude → les tools `get-lists`, `add-item`, `toggle-item`... sont disponibles.
 
 ### P3 — MCP Apps
-Même serveur MCP que P2. Le host (Claude) gère le rendu du widget dans le chat.
+Même serveur MCP que P2. Les tools `suggest-bread` et `test-mcp-apps` retournent des données que le host (Claude) rend comme **widget interactif** dans le chat, via une `#[McpResource]` HTML (`ui://grocery/widget.html`).
 
 ### P4 — WebMCP (Chrome Canary + MCP-B)
 
@@ -104,7 +104,8 @@ src/
 │   ├── GroceryList.php        # id, name, position
 │   └── GroceryItem.php        # id, name, checked, list
 ├── Mcp/
-│   └── GroceryTools.php       # P2: #[McpTool] (9 tools)
+│   ├── GroceryTools.php       # P2: #[McpTool] (9 tools)
+│   └── GroceryAppTools.php    # P3: MCP Apps (widget + suggest-bread)
 ├── Command/
 │   └── SeedGroceryCommand.php # Données de démo
 └── Repository/
@@ -142,6 +143,8 @@ config/packages/mcp.yaml          # Config MCP Server
 | `toggle-item` | `itemId` | Coche/décoche |
 | `edit-item` | `itemId`, `name` | Renomme un item |
 | `move-item` | `itemId`, `targetListId` | Déplace un item |
+| `suggest-bread` | `listId`, `listName` | P3 — Widget picker de pains |
+| `test-mcp-apps` | — | P3 — Widget de test |
 
 ## Pour aller plus loin
 

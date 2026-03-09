@@ -84,7 +84,7 @@ class GroceryItem
     public function toArray(): array
     {
         return [
-            'id' => (string) $this->id,
+            'id' => $this->id,
             'name' => $this->name,
             'checked' => $this->checked,
             'createdAt' => $this->createdAt,

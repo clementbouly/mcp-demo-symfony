@@ -285,7 +285,7 @@
 
     let lastHash = null;
     let pendingRender = false;
-    const POLL_INTERVAL_MS = 2000;
+    const POLL_INTERVAL_MS = 2000; // Détecte les changements externes (MCP tools, autre tab)
 
     async function pollForChanges() {
         try {
@@ -345,15 +345,23 @@
     pollForChanges();
 </script>
 
+{# ── P4: WebMCP — polyfill @mcp-b/global (bridge vers extension MCP-B) ── #}
+<script src="https://cdn.jsdelivr.net/npm/@mcp-b/global@2.0.6/dist/index.iife.js"></script>
+
 {# ── P4: WebMCP — déclaration des tools via navigator.modelContext ── #}
 <script>
     if ('modelContext' in navigator) {
+        const mc = navigator.modelContext;
+
         const tools = [
             {
                 name: 'get-lists',
                 description: 'Get all grocery lists with their items',
                 inputSchema: { type: 'object', properties: {} },
-                handler: () => api('/api/lists'),
+                async execute() {
+                    const result = await api('/api/lists');
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
             },
             {
                 name: 'create-list',
@@ -363,7 +371,10 @@
                     properties: { name: { type: 'string', description: 'List name' } },
                     required: ['name'],
                 },
-                handler: ({ name }) => api('/api/lists', 'POST', { name }),
+                async execute(params) {
+                    const result = await mutateAndRender(() => api('/api/lists', 'POST', { name: params.name }));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
             },
             {
                 name: 'delete-list',
@@ -373,7 +384,10 @@
                     properties: { listId: { type: 'string', description: 'List ID' } },
                     required: ['listId'],
                 },
-                handler: ({ listId }) => api(`/api/lists/${listId}`, 'DELETE'),
+                async execute(params) {
+                    const result = await mutateAndRender(() => api(`/api/lists/${params.listId}`, 'DELETE'));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
             },
             {
                 name: 'add-item',
@@ -386,7 +400,10 @@
                     },
                     required: ['listId', 'name'],
                 },
-                handler: ({ listId, name }) => api(`/api/lists/${listId}/items`, 'POST', { name }),
+                async execute(params) {
+                    const result = await mutateAndRender(() => api(`/api/lists/${params.listId}/items`, 'POST', { name: params.name }));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
             },
             {
                 name: 'remove-item',
@@ -396,7 +413,10 @@
                     properties: { itemId: { type: 'string', description: 'Item ID' } },
                     required: ['itemId'],
                 },
-                handler: ({ itemId }) => api(`/api/items/${itemId}`, 'DELETE'),
+                async execute(params) {
+                    const result = await mutateAndRender(() => api(`/api/items/${params.itemId}`, 'DELETE'));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
             },
             {
                 name: 'toggle-item',
@@ -406,19 +426,67 @@
                     properties: { itemId: { type: 'string', description: 'Item ID' } },
                     required: ['itemId'],
                 },
-                handler: ({ itemId }) => api(`/api/items/${itemId}/toggle`, 'PATCH'),
+                async execute(params) {
+                    const result = await mutateAndRender(() => api(`/api/items/${params.itemId}/toggle`, 'PATCH'));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
+            },
+            {
+                name: 'rename-list',
+                description: 'Rename a grocery list',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        listId: { type: 'string', description: 'List ID' },
+                        name: { type: 'string', description: 'New name' },
+                    },
+                    required: ['listId', 'name'],
+                },
+                async execute(params) {
+                    const result = await mutateAndRender(() => api(`/api/lists/${params.listId}`, 'PUT', { name: params.name }));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
+            },
+            {
+                name: 'edit-item',
+                description: 'Rename a grocery item',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        itemId: { type: 'string', description: 'Item ID' },
+                        name: { type: 'string', description: 'New name' },
+                    },
+                    required: ['itemId', 'name'],
+                },
+                async execute(params) {
+                    const result = await mutateAndRender(() => api(`/api/items/${params.itemId}`, 'PUT', { name: params.name }));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
+            },
+            {
+                name: 'move-item',
+                description: 'Move an item from one list to another',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        itemId: { type: 'string', description: 'Item ID' },
+                        targetListId: { type: 'string', description: 'Target list ID' },
+                    },
+                    required: ['itemId', 'targetListId'],
+                },
+                async execute(params) {
+                    const result = await mutateAndRender(() => api(`/api/items/${params.itemId}/move`, 'POST', { targetListId: params.targetListId }));
+                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+                },
             },
         ];
 
         tools.forEach(tool => {
-            navigator.modelContext.registerTool(tool.name, {
-                description: tool.description,
-                inputSchema: tool.inputSchema,
-                handler: async (params) => {
-                    const result = await mutateAndRender(() => tool.handler(params));
-                    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-                },
-            });
+            try {
+                mc.registerTool(tool);
+            } catch (e) {
+                console.warn(`Failed to register tool ${tool.name}:`, e);
+            }
         });
 
         console.log(`🔧 WebMCP: ${tools.length} tools registered`);

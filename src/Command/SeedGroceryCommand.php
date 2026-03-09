@@ -36,20 +36,12 @@ class SeedGroceryCommand extends Command
         $carrefour->setPosition(0);
         $this->em->persist($carrefour);
 
-        $items = [
+        $this->seedItems($carrefour, [
             ['name' => 'Lait', 'checked' => true],
             ['name' => 'Oeufs', 'checked' => false],
             ['name' => 'Pain de mie', 'checked' => false],
             ['name' => 'Beurre', 'checked' => true],
-        ];
-
-        foreach ($items as $data) {
-            $item = new GroceryItem();
-            $item->setName($data['name']);
-            $item->setChecked($data['checked']);
-            $item->setGroceryList($carrefour);
-            $this->em->persist($item);
-        }
+        ]);
 
         // Marché
         $marche = new GroceryList();
@@ -57,24 +49,28 @@ class SeedGroceryCommand extends Command
         $marche->setPosition(1);
         $this->em->persist($marche);
 
-        $items = [
+        $this->seedItems($marche, [
             ['name' => 'Tomates', 'checked' => false],
             ['name' => 'Fromage de chèvre', 'checked' => false],
             ['name' => 'Basilic', 'checked' => true],
-        ];
-
-        foreach ($items as $data) {
-            $item = new GroceryItem();
-            $item->setName($data['name']);
-            $item->setChecked($data['checked']);
-            $item->setGroceryList($marche);
-            $this->em->persist($item);
-        }
+        ]);
 
         $this->em->flush();
 
         $io->success('Demo grocery lists seeded successfully!');
 
         return Command::SUCCESS;
+    }
+
+    /** @param array<array{name: string, checked: bool}> $items */
+    private function seedItems(GroceryList $list, array $items): void
+    {
+        foreach ($items as $data) {
+            $item = new GroceryItem();
+            $item->setName($data['name']);
+            $item->setChecked($data['checked']);
+            $item->setGroceryList($list);
+            $this->em->persist($item);
+        }
     }
 }
