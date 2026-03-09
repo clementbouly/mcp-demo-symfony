@@ -135,6 +135,20 @@ config/packages/mcp.yaml          # Config MCP Server
 | `suggest-bread` | `listId`, `listName` | P3 — Widget picker de pains |
 | `test-mcp-apps` | — | P3 — Widget de test |
 
+## MCP Inspector
+
+Le [MCP Inspector](https://github.com/modelcontextprotocol/inspector) permet de visualiser les échanges JSON-RPC entre un client et le serveur MCP. C'est le "Postman du monde MCP".
+
+```bash
+# Lancer l'Inspector sur le serveur local (stdio)
+npx @modelcontextprotocol/inspector -- php bin/console mcp:server
+```
+
+L'interface web s'ouvre automatiquement. On peut :
+- Voir la liste des tools exposés (étape **Découverte**)
+- Appeler un tool manuellement et voir la requête/réponse JSON-RPC (étapes **Appel** + **Résultat**)
+- Inspecter les ressources MCP Apps
+
 ## Pour aller plus loin
 
 - **WebMCP Bundle** : [`yoanbernabeu/webmcp-bundle`](https://packagist.org/packages/yoanbernabeu/webmcp-bundle) — déclare les tools WebMCP avec des attributs PHP `#[AsWebMcpTool]`
