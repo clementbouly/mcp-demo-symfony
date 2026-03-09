@@ -21,6 +21,17 @@ class ApiController extends AbstractController
         private GroceryItemRepository $itemRepo,
     ) {}
 
+    /* ── State hash (polling) ─────────────────────────── */
+
+    #[Route('/state-hash', methods: ['GET'])]
+    public function getStateHash(): JsonResponse
+    {
+        $lists = $this->listRepo->findAllOrdered();
+        $data = array_map(fn(GroceryList $l) => $l->toArray(), $lists);
+
+        return $this->json(['hash' => md5(json_encode($data))]);
+    }
+
     /* ── Lists ─────────────────────────────────────────── */
 
     #[Route('/lists', methods: ['GET'])]

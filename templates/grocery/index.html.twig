@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}🛒 Liste de courses — Démo MCP Symfony{% endblock %}
+{% block title %}Liste de courses — Démo MCP Symfony{% endblock %}
 
 {% block stylesheets %}
 <style>
@@ -142,6 +142,16 @@
         font-size: 0.75rem;
         margin-top: 0.5rem;
     }
+    @keyframes item-highlight {
+        from { background-color: #dcfce7; }
+        to { background-color: transparent; }
+    }
+    .item-highlight { animation: item-highlight 1.5s ease-out; }
+    @keyframes list-highlight {
+        from { box-shadow: 0 0 0 2px #86efac, 0 1px 3px rgba(0,0,0,0.08); }
+        to { box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    }
+    .list-highlight { animation: list-highlight 1.5s ease-out; }
 </style>
 {% endblock %}
 
@@ -185,6 +195,8 @@
 
 {% block javascripts %}
 <script>
+    /* ── API helper ─────────────────────────────────────── */
+
     async function api(url, method = 'GET', body = null) {
         const opts = { method, headers: { 'Content-Type': 'application/json' } };
         if (body) opts.body = JSON.stringify(body);
@@ -192,16 +204,59 @@
         return res.json();
     }
 
-    function reload() { location.reload(); }
+    /* ── DOM rendering ──────────────────────────────────── */
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function renderBoard(data) {
+        const board = document.getElementById('board');
+        board.innerHTML = data.lists.map(list => `
+            <div class="list-card" data-list-id="${list.id}">
+                <div class="list-header">
+                    <h2>${escapeHtml(list.name)}</h2>
+                    <button class="btn-delete-list" onclick="deleteList(${list.id})" title="Supprimer la liste">✕</button>
+                </div>
+                <ul class="items">
+                    ${list.items.map(item => `
+                        <li class="item" data-item-id="${item.id}">
+                            <input type="checkbox" ${item.checked ? 'checked' : ''}
+                                   onchange="toggleItem(${item.id})">
+                            <span class="item-name ${item.checked ? 'checked' : ''}">${escapeHtml(item.name)}</span>
+                            <button class="btn-delete-item" onclick="removeItem(${item.id})" title="Supprimer">✕</button>
+                        </li>
+                    `).join('')}
+                </ul>
+                <form class="add-item-form" onsubmit="addItem(event, ${list.id})">
+                    <input type="text" placeholder="Ajouter un article..." maxlength="50" required>
+                    <button type="submit">+</button>
+                </form>
+            </div>
+        `).join('');
+    }
+
+    /* ── Mutate + re-render helper ──────────────────────── */
+
+    async function mutateAndRender(apiCall) {
+        const result = await apiCall();
+        const data = await api('/api/lists');
+        renderBoard(data);
+        const { hash } = await api('/api/state-hash');
+        lastHash = hash;
+        return result;
+    }
+
+    /* ── Actions (no more reload) ───────────────────────── */
 
     async function toggleItem(id) {
-        await api(`/api/items/${id}/toggle`, 'PATCH');
-        reload();
+        await mutateAndRender(() => api(`/api/items/${id}/toggle`, 'PATCH'));
     }
 
     async function removeItem(id) {
-        await api(`/api/items/${id}`, 'DELETE');
-        reload();
+        await mutateAndRender(() => api(`/api/items/${id}`, 'DELETE'));
     }
 
     async function addItem(e, listId) {
@@ -209,14 +264,12 @@
         const input = e.target.querySelector('input');
         const name = input.value.trim();
         if (!name) return;
-        await api(`/api/lists/${listId}/items`, 'POST', { name });
-        reload();
+        await mutateAndRender(() => api(`/api/lists/${listId}/items`, 'POST', { name }));
     }
 
     async function deleteList(id) {
         if (!confirm('Supprimer cette liste ?')) return;
-        await api(`/api/lists/${id}`, 'DELETE');
-        reload();
+        await mutateAndRender(() => api(`/api/lists/${id}`, 'DELETE'));
     }
 
     async function createList(e) {
@@ -224,9 +277,72 @@
         const input = e.target.querySelector('input');
         const name = input.value.trim();
         if (!name) return;
-        await api('/api/lists', 'POST', { name });
-        reload();
+        await mutateAndRender(() => api('/api/lists', 'POST', { name }));
+        input.value = '';
     }
+
+    /* ── Polling for external changes (MCP tools, etc.) ── */
+
+    let lastHash = null;
+    let pendingRender = false;
+    const POLL_INTERVAL_MS = 2000;
+
+    async function pollForChanges() {
+        try {
+            const activeEl = document.activeElement;
+            const isTyping = activeEl && activeEl.tagName === 'INPUT' && activeEl.closest('.add-item-form, .new-list-form');
+
+            const { hash } = await api('/api/state-hash');
+
+            if (lastHash !== null && hash !== lastHash) {
+                if (isTyping) {
+                    pendingRender = true;
+                    lastHash = hash;
+                } else {
+                    const oldItemIds = new Set(
+                        [...document.querySelectorAll('.item')].map(el => el.dataset.itemId)
+                    );
+                    const oldListIds = new Set(
+                        [...document.querySelectorAll('.list-card')].map(el => el.dataset.listId)
+                    );
+
+                    const data = await api('/api/lists');
+                    renderBoard(data);
+
+                    // Highlight new items
+                    document.querySelectorAll('.item').forEach(el => {
+                        if (!oldItemIds.has(el.dataset.itemId)) {
+                            el.classList.add('item-highlight');
+                        }
+                    });
+                    // Highlight new lists
+                    document.querySelectorAll('.list-card').forEach(el => {
+                        if (!oldListIds.has(el.dataset.listId)) {
+                            el.classList.add('list-highlight');
+                        }
+                    });
+
+                    pendingRender = false;
+                }
+            }
+            lastHash = hash;
+        } catch (e) {
+            // Silently ignore network errors during polling
+        }
+        setTimeout(pollForChanges, POLL_INTERVAL_MS);
+    }
+
+    // Flush deferred renders when user stops typing
+    document.addEventListener('focusout', async (e) => {
+        if (pendingRender && e.target.closest('.add-item-form, .new-list-form')) {
+            const data = await api('/api/lists');
+            renderBoard(data);
+            pendingRender = false;
+        }
+    });
+
+    // Start polling
+    pollForChanges();
 </script>
 
 {# ── P4: WebMCP — déclaration des tools via navigator.modelContext ── #}
@@ -299,7 +415,7 @@
                 description: tool.description,
                 inputSchema: tool.inputSchema,
                 handler: async (params) => {
-                    const result = await tool.handler(params);
+                    const result = await mutateAndRender(() => tool.handler(params));
                     return { content: [{ type: 'text', text: JSON.stringify(result) }] };
                 },
             });

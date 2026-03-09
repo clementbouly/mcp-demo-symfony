@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "grocery-symfony": {
+      "command": "php",
+      "args": ["bin/console", "mcp:server"]
+    }
+  }
+}
