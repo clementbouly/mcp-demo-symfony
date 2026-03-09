@@ -68,18 +68,7 @@ Ajouter dans `~/Library/Application Support/Claude/claude_desktop_config.json` :
 }
 ```
 
-Pour **Claude Code**, créer un fichier `.mcp.json` :
-
-```json
-{
-  "mcpServers": {
-    "grocery-symfony": {
-      "command": "php",
-      "args": ["bin/console", "mcp:server"]
-    }
-  }
-}
-```
+**Claude Code** — Le fichier `.mcp.json` est déjà inclus dans le projet. Il suffit d'ouvrir Claude Code depuis le dossier du projet.
 
 Relancer Claude → les tools `get-lists`, `add-item`, `toggle-item`... sont disponibles.
 
